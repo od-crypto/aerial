@@ -1,0 +1,16 @@
+opencv-python==4.1.2.30
+Pillow
+numpy
+scipy
+tifffile
+imagecodecs-lite
+imagecodecs
+tqdm
+p_tqdm
+scikit-image
+git+git://github.com/ternaus/TernausNet.git#egg=ternausnet
+matplotlib
+livelossplot
+yadisk
+scikit-learn
+streamlit
