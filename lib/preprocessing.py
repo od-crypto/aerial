@@ -14,7 +14,6 @@ import tifffile
 import numpy as np
 
 
-
 def get_rotated_crops(I, angle, crop_size=(448,448), num_crops=2):
     if angle == 0:
         mask = np.zeros_like(I[:, :, 0])
@@ -34,8 +33,12 @@ def get_rotated_crops(I, angle, crop_size=(448,448), num_crops=2):
         y0 = y[c]
         yield II[x0:x0 + crop_size[0], y0:y0 + crop_size[1]]
 
+        
 class DatasetPreprocessor:
     def __init__(self, config):
+        
+        self.debug_images = True
+        
         for key, value in config.items():
             setattr(self, key, value)
         
@@ -56,9 +59,26 @@ class DatasetPreprocessor:
         for dir_ in self._workdirs:
             shutil.rmtree(dir_)
     
-    def get_fids(self):
-        raise NotImplementedError
+    def rmunuseddirs(self):
+        unused = (
+            self.intermediate, 
+            self.rotated_crops, 
+            self.rotated_crops_images,
+            self.rotated_crops_masks)
+
+        for dir_ in unused:
+            shutil.rmtree(dir_)
         
+    def get_fids(self):
+        fids = os.listdir(self.mask_dir)
+        _fids = []
+        for item in fids:
+            for ext in self.allowed_extensions:
+                if item.endswith(ext):
+                    basename = item.split('.')[0]
+                    _fids.append(basename)
+        return _fids
+    
     def imread(self, fid):
         raise NotImplementedError
         
@@ -68,13 +88,13 @@ class DatasetPreprocessor:
         '''
         raise NotImplementedError
         
-    def rotate_onefile(self, fid, angles=None, num_crops=1000):
+    def rotate_onefile(self, fid, angles=None):
         angles = angles or list(range(0, 90, 10))
         I = self.imread(fid)
         
         for angle in angles:
             print(fid, angle)
-            for i, patch in enumerate(get_rotated_crops(I, angle, crop_size=self.crop_size, num_crops=num_crops)):
+            for i, patch in enumerate(get_rotated_crops(I, angle, crop_size=self.crop_size, num_crops=self.num_crops)):
                 if patch[:, :, -1].max() == 0 or patch[:, :, -1].min() == 255:
                     continue
                 Image.fromarray(patch).save(f'{self.intermediate}/{fid}-{i}-{angle}.png')
@@ -105,6 +125,9 @@ class DatasetPreprocessor:
             
         ifids = list(filter(lambda x: x is not None, ifids))
         self.ifids = ifids
+
+    def set_rfids(self):
+        self.rfids = os.listdir(self.rotated_crops)
         
     def _calc_stats(self, ifid):
         I = self.ifimread(ifid)
@@ -128,8 +151,9 @@ class DatasetPreprocessor:
         I = self.ifimread(ifid)
 
         cv2.imwrite(f'{self.rotated_crops}/{ifid}.png',I)
-        cv2.imwrite(f'{self.rotated_crops_masks}/{ifid}.png',I[:, :, 3])
-        cv2.imwrite(f'{self.rotated_crops_images}/{ifid}.png',I[:, :, :3])
+        if self.debug_images:
+            cv2.imwrite(f'{self.rotated_crops_masks}/{ifid}.png',I[:, :, 3])
+            cv2.imwrite(f'{self.rotated_crops_images}/{ifid}.png',I[:, :, :3])
         
 
     def create_balanced_dataset(self, distrib):
@@ -145,18 +169,7 @@ class DatasetPreprocessor:
         
 
 class LandcoverDatasetPreprocessor(DatasetPreprocessor):
-    
-    def get_fids(self):
-        fids = os.listdir(self.mask_dir)
-        _fids = []
-        for item in fids:
-            for ext in self.allowed_extensions:
-                if item.endswith(ext):
-                    basename = item.split('.')[0]
-                    _fids.append(basename)
-        return _fids
         
-    
     def imread(self, fid):
         M = tifffile.imread(f'{self.mask_dir}/{fid}.tif')
         I = tifffile.imread(f'{self.image_dir}/{fid}.tif')
@@ -170,19 +183,8 @@ class LandcoverDatasetPreprocessor(DatasetPreprocessor):
         M[M == 3] = 255
         return M
     
-
-class SentinelDatasetPreprocessor(DatasetPreprocessor):
     
-    def get_fids(self):
-        fids = os.listdir(self.mask_dir)
-        _fids = []
-        for item in fids:
-            for ext in self.allowed_extensions:
-                if item.endswith(ext):
-                    basename = item.split('.')[0]
-                    _fids.append(basename)
-        return _fids
-        
+class SentinelDatasetPreprocessor(DatasetPreprocessor):
     
     def imread(self, fid):
         M = cv2.imread(f'{self.mask_dir}/{fid}.png', cv2.IMREAD_UNCHANGED)

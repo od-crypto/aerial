@@ -13,7 +13,7 @@ from IPython.display import Image
 from IPython.display import display
 
 
-def create_collage(url, image_json, path_collage, path_mask, path_image, display_locally):
+def create_collage(url, image_json, path_image, path_collage, path_mask, display_locally):
     
     I = np.asarray(PIL.Image.open(BytesIO(requests.get(url).content)))
     
@@ -25,11 +25,13 @@ def create_collage(url, image_json, path_collage, path_mask, path_image, display
     II = I.copy()
     II[boundary > 0] = [0,0,255]
     
+    # print(mask.shape, mask.dtype)
+    
     # cv2 saves in bgr, however Image reads in rgb:
-    # cv2.imwrite(path_mask, mask[20:-20,20:-20]*255, [cv2.IMWRITE_JPEG_QUALITY, 100])
+    # cv2.imwrite(path_mask, mask*255)
     # cv2.imwrite(path_collage, II[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, 100])
     # cv2.imwrite(path_image, I[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, 100])
-    PIL.Image.fromarray(mask[20:-20,20:-20]*255).save(path_mask)
+    PIL.Image.fromarray(mask * 255).save(path_mask)
     PIL.Image.fromarray(II).save(path_collage)
     PIL.Image.fromarray(I).save(path_image)
     
@@ -60,7 +62,7 @@ def plot_locally(url, II, I, mask):
     return plt.tight_layout()
 
 
-def create_masks(df, mask_dir, collage_dir, image_dir, display_locally=True, init=0, fin=None):
+def create_masks(df, image_dir, collage_dir, mask_dir, display_locally=True, init=0, fin=None):
         
     # Create masks, collages and images folders, 
     # if they do not exist:
@@ -90,16 +92,16 @@ def create_masks(df, mask_dir, collage_dir, image_dir, display_locally=True, ini
         image_url = df.iloc[i,:]['INPUT:image']
         # print(i, image_url)
     
-        path_mask = f"{mask_dir}/{image_url.split('/')[-1][:-4]}.png"
-        path_collage = f"{collage_dir}/{image_url.split('/')[-1][:-4]}.png"
         path_image = f"{image_dir}/{image_url.split('/')[-1][:-4]}.png"
+        path_collage = f"{collage_dir}/{image_url.split('/')[-1][:-4]}.png"
+        path_mask = f"{mask_dir}/{image_url.split('/')[-1][:-4]}.png"
     
         json_string = df.iloc[i,:]['OUTPUT:result']
         image_json = demjson.decode(json_string)
     
         l.append(image_url)
         
-        create_collage(image_url, image_json, path_collage, path_mask, path_image, display_locally)
+        create_collage(image_url, image_json, path_image, path_collage, path_mask, display_locally)
         
         #############################
         # first four masks:

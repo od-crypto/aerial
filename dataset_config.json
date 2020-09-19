@@ -1,23 +1,28 @@
 {
     "landcover": {
+        "debug_images": false,
+        "num_crops": 800,
         "name": "LANDCOVER",
-        "mask_dir": "masks",
-        "image_dir": "images",
+        "mask_dir": "datasets/landcover/masks",
+        "image_dir": "datasets/landcover/images",
         "allowed_extensions": [".tif"],
-        "intermediate": "intermediate",
-        "rotated_crops": "landcover_rotated_crops",
-        "rotated_crops_images": "landcover_rotated_crops_check/images",
-        "rotated_crops_masks": "landcover_rotated_crops_check/masks"
+        "intermediate": "datasets/landcover_processed/intermediate",
+        "rotated_crops": "datasets/landcover_processed/rotated_crops",
+        "rotated_crops_images": "datasets/landcover_processed/rotated_crops_check/images",
+        "rotated_crops_masks": "datasets/landcover_processed/rotated_crops_check/masks"
     },
     "sentinel": {
+        "debug_images": false,
+        "num_crops": 150,
         "name": "SENTINEL",
-        "mask_dir": "sentinel_masks",
-        "image_dir": "sentinel_images",
+        "mask_dir": "datasets/sentinel/masks",
+        "image_dir": "datasets/sentinel/images",
+        "collage_dir": "datasets/sentinel/collages",
         "allowed_extensions": [".png"],
-        "intermediate": "sentinel_intermediate",
-        "rotated_crops": "sentinel_rotated_crops",
-        "rotated_crops_images": "sentinel_rotated_crops_check/images",
-        "rotated_crops_masks": "sentinel_rotated_crops_check/masks"
+        "intermediate": "datasets/sentinel_processed/intermediate",
+        "rotated_crops": "datasets/sentinel_processed/rotated_crops",
+        "rotated_crops_images": "datasets/sentinel_processed/rotated_crops_check/images",
+        "rotated_crops_masks": "datasets/sentinel_processed/rotated_crops_check/masks"
     }
     
 }
