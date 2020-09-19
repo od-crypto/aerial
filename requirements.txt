@@ -14,3 +14,4 @@ livelossplot
 yadisk
 scikit-learn
 streamlit
+ipywidgets

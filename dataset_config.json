@@ -1,0 +1,23 @@
+{
+    "landcover": {
+        "name": "LANDCOVER",
+        "mask_dir": "masks",
+        "image_dir": "images",
+        "allowed_extensions": [".tif"],
+        "intermediate": "intermediate",
+        "rotated_crops": "landcover_rotated_crops",
+        "rotated_crops_images": "landcover_rotated_crops_check/images",
+        "rotated_crops_masks": "landcover_rotated_crops_check/masks"
+    },
+    "sentinel": {
+        "name": "SENTINEL",
+        "mask_dir": "sentinel_masks",
+        "image_dir": "sentinel_images",
+        "allowed_extensions": [".png"],
+        "intermediate": "sentinel_intermediate",
+        "rotated_crops": "sentinel_rotated_crops",
+        "rotated_crops_images": "sentinel_rotated_crops_check/images",
+        "rotated_crops_masks": "sentinel_rotated_crops_check/masks"
+    }
+    
+}
