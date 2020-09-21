@@ -34,9 +34,6 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
     batch_size=cfg["batch_size"]
     lr=cfg["lr"]
     num_epochs=cfg["num_epochs"]   
-    
-    # ?? self.train_img_list = ["train_img_list"]
-    # ?? self.test_img_list = cfg["test_img_list"]
    
     model = ternausnet.models.UNet11(pretrained=use_pretrained_vgg)
     
@@ -99,9 +96,6 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
             metrics['train_nolake_acc'].append(pred, gt)
             metrics['train_loss'].append(L)
             optimizer.step()
-
-            #if (idx % 10) == 0:
-            #    pass # eval
         
         torch.cuda.empty_cache()
         
@@ -127,15 +121,21 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
             metric.history()
 
             
-    history = {key: metrics[key].hist for key in metrics}
+        history = {key: metrics[key].hist for key in metrics}
         
-#         if (len(topk_val_losses) < 5) or (val_loss < max(topk_val_losses.keys())):
-#             if (len(topk_val_losses) > 0) and (val_loss < max(topk_val_losses.keys())):
-#                 argmin = max(topk_val_losses.keys())
-#                 fname = topk_val_losses[argmin]
-#                 os.remove(fname)
-#                 del topk_val_losses[argmin]
-#             topk_val_losses[val_loss] = f'model-{train_id}-{epoch}.pth'
-#             torch.save(model.state_dict(), f'model-{train_id}-{epoch}.pth')
-
+        
+        save_models(model, topk_val_losses, metrics['val_loss'].result(), epoch, train_id, save_num_models=3)
     torch.save(model.state_dict(), 'model-latest.pth')
+    
+    with open(f'history-{train_id}.json', "w") as write_file:
+            json.dump(history, write_file, indent=4)
+
+def save_models(model, topk_val_losses, val_loss, epoch, train_id, save_num_models=3):
+    if (len(topk_val_losses) < save_num_models) or (val_loss < max(topk_val_losses.keys())):
+            if (len(topk_val_losses) > 0) and (val_loss < max(topk_val_losses.keys())):
+                argmin = max(topk_val_losses.keys())
+                fname = topk_val_losses[argmin]
+                os.remove(fname)
+                del topk_val_losses[argmin]
+            topk_val_losses[val_loss] = f'model-{train_id}-{epoch}.pth'
+            torch.save(model.state_dict(), f'model-{train_id}-{epoch}.pth')
