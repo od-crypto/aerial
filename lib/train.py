@@ -137,5 +137,5 @@ def save_models(model, topk_val_losses, val_loss, epoch, train_id, save_num_mode
                 fname = topk_val_losses[argmin]
                 os.remove(fname)
                 del topk_val_losses[argmin]
-            topk_val_losses[val_loss] = f'model-{train_id}-{epoch}.pth'
-            torch.save(model.state_dict(), f'model-{train_id}-{epoch}.pth')
+            topk_val_losses[val_loss] = f'models/model-{train_id}-{epoch}.pth'
+            torch.save(model.state_dict(), f'models/model-{train_id}-{epoch}.pth')

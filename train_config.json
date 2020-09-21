@@ -5,7 +5,7 @@
         "train_img_list": "train_img_list_landcover.json",
         "test_img_list": "test_img_list_landcover.json",
         "batch_size": 40,
-        "num_epochs": 20,
+        "num_epochs": 9,
         "lr": 0.0001
     },
     "from_scratch_sentinel": {
@@ -34,5 +34,5 @@
         "batch_size": 40,
         "num_epochs": 20,
         "lr": 0.0001
-    },
+    }
 }
