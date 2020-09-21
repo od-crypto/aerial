@@ -101,16 +101,16 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
         
         model.eval()
         print('eval step')
-        for idx, (im, gt) in enumerate(dl_val):
-            im = im.to(device)
-            gt = gt.to(device)
-            pred = model(im)
-            L = loss(pred, gt)
-            metrics['val_acc'].append(pred, gt)
-            metrics['val_lake_acc'].append(pred, gt)
-            metrics['val_nolake_acc'].append(pred, gt)
-            metrics['val_loss'].append(L)
-
+        with torch.no_grad():
+            for idx, (im, gt) in enumerate(dl_val):
+                im = im.to(device)
+                gt = gt.to(device)
+                pred = model(im)
+                L = loss(pred, gt)
+                metrics['val_acc'].append(pred, gt)
+                metrics['val_lake_acc'].append(pred, gt)
+                metrics['val_nolake_acc'].append(pred, gt)
+                metrics['val_loss'].append(L)
         torch.cuda.empty_cache()
         
         results = {key: metrics[key].result() for key in metrics}
