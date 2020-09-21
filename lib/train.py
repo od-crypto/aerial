@@ -48,7 +48,7 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
 
     loss = nn.BCEWithLogitsLoss()
    
-    optimizer = Adam(model.parameters(), lr)    
+    optimizer = Adam(filter(lambda x: return x.requires_grad, model.parameters()), lr)    
 
     d_train = WaterDataset(cfg['train_img_list'], train_transform)
     d_val = WaterDataset(cfg['test_img_list'], test_transform)
