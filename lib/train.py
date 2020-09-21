@@ -37,6 +37,11 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
    
     model = ternausnet.models.UNet11(pretrained=use_pretrained_vgg)
     
+    if cfg.get('first_freeze_layers', None) is not None:
+        for i in range(cfg['first_freeze_layers']):
+            for param in model.encoder[i].parameters():
+                param.requires_grad = False
+    
     if cfg['pretrained_model'] is not None:
         model.load_state_dict(torch.load(cfg['pretrained_model']))
     model = model.to(device)
