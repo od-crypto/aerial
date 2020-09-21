@@ -1,0 +1,11 @@
+{
+    "from_scratch": {
+        "use_pretrained_vgg": false,
+        "pretrained_model": null,
+        "train_img_list": "train_img_list.json",
+        "test_img_list": "test_img_list.json",
+        "batch_size": 40,
+        "num_epochs": 20,
+        "lr": 0.0001
+    }
+}

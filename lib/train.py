@@ -1,103 +1,141 @@
 import os
 import json
 import random
-random.seed(0)
 
 from PIL import Image
 
 import matplotlib.pyplot as plt
 
-import torch
-from torch.utils.data import Dataset
-from torchvision import transforms
-
-from sklearn.model_selection import train_test_split
-
-import torch
-torch.manual_seed(0)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 import numpy as np
-np.random.seed(0)
 
+import torch
 from torch.optim import Adam
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-
-from tqdm import tqdm
 
 from livelossplot import PlotLosses
 
 import ternausnet.models
 
-class WaterDataset(Dataset):
-    def __init__(self, file_path, transform=None):
-        super().__init__()
-        with open(file_path, 'r') as f:
-            self.image_list = json.load(f)
-        self.transforms = transform
-        self.to_tensor = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406, 0],
-                                std=[0.229, 0.224, 0.225, 1])
-        ])
-        
-    def __len__(self):
-        # return 100
-        return len(self.image_list)
-        
-    def __getitem__(self, idx):
-        file_name = self.image_list[idx]
-        
-        I = Image.open(file_name) # h x w x 4
-        if self.transforms is not None:
-            I = self.transforms(I) # h x w x 4
-        I = self.to_tensor(I)
-        im = I[:3, :, :]
-        gt = I[[-1], :, :]
-        return im, gt
-    
-class RandomRotate90:
-    def __init__(self):
-        pass
-    def __call__(self, img):
-        return img.rotate(random.choice([0,90,180,270]))
-    
-train_transform = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    RandomRotate90(),
-    transforms.RandomResizedCrop(size=(224,224), scale=(0.5, 1.0))
-])
+from .dataset import *
+from .metrics import *
 
-test_transform = transforms.Compose([
-    transforms.Resize(size=(224,224))
-])
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.random.seed(0)
+random.seed(0)
 
+def trainer(cfg, train_id=None, num_workers=20, device=None):
+    
+    device = device or 'cuda:0' ##
+    train_id = train_id or cfg['train_id']
+    use_pretrained_vgg=cfg["use_pretrained_vgg"]
+    batch_size=cfg["batch_size"]
+    lr=cfg["lr"]
+    num_epochs=cfg["num_epochs"]   
+    
+    # ?? self.train_img_list = ["train_img_list"]
+    # ?? self.test_img_list = cfg["test_img_list"]
+   
+    model = ternausnet.models.UNet11(pretrained=use_pretrained_vgg)
+    
+    if cfg['pretrained_model'] is not None:
+        model.load_state_dict(torch.load(cfg['pretrained_model']))
+    model = model.to(device)
 
-def viz(model, path, device):
-    I = Image.open(path).resize((224,224), resample=Image.BILINEAR)
-    I = np.asarray(I)
-    II = I[:, :, :3].copy()
-    I = torch.tensor(I, dtype=torch.float)
-    I = I / 255
-    I = I.transpose(1, 2).transpose(0, 1)
-    im = I[:3, :, :]
+    loss = nn.BCEWithLogitsLoss()
+   
+    optimizer = Adam(model.parameters(), lr)    
+
+    d_train = WaterDataset(cfg['train_img_list'], train_transform)
+    d_val = WaterDataset(cfg['test_img_list'], test_transform)
     
-    im = (im - torch.tensor([0.485, 0.456, 0.406])[..., None, None]) / torch.tensor([0.229, 0.224, 0.225])[..., None, None]
+    print(d_val[0][0].shape)
     
-    gt = (I[3, :, :]).numpy()
-    im = im[None, ...]
-    im = im.to(device)
+
+    dl_train = DataLoader(d_train, batch_size, shuffle=True, num_workers=num_workers)
+    dl_val = DataLoader(d_val, batch_size, shuffle=False, num_workers=num_workers)
+
+        
+    metrics = {
+        'val_acc': AccuracyMetric(0.5),
+        'train_acc': AccuracyMetric(0.5),
+        'val_loss': LossMetric(),
+        'train_loss': LossMetric(),
+        'train_lake_acc': LakeAccuracyMetric(0.5),
+        'val_lake_acc': LakeAccuracyMetric(0.5),
+        'train_nolake_acc': NoLakeAccuracyMetric(0.5),
+        'val_nolake_acc': NoLakeAccuracyMetric(0.5),
+    }
     
-    pred = model(im).detach().cpu().numpy()[0, 0]
-    mask_pred = (pred > 0.5)
-    
-    gt = gt > 0.5
-    
-    print(mask_pred.sum())
-    print(II.shape, mask_pred.shape)
-    II[:, :, 0][mask_pred] = 255
-    II[:, :, 1][gt] = 255
-    return II
-    
+    groups = {
+        'accuracy': ['train_acc', 'val_acc'], 
+        'bce-loss': ['train_loss', 'val_loss'], 
+        'lake-acc': ['train_lake_acc', 'val_lake_acc'],
+        'nolake_acc': ['train_nolake_acc', 'val_nolake_acc'],
+    }
+    plotlosses = PlotLosses(groups=groups)
+
+    topk_val_losses = {}
+
+    for epoch in range(num_epochs):
+        print('train step')
+        for name, metric in metrics.items():
+            metric.reset()
+
+        model.train()
+        for idx, (im, gt) in enumerate(dl_train):
+            im = im.to(device)
+            gt = gt.to(device)
+            optimizer.zero_grad()
+
+            pred = model(im)
+            L = loss(pred, gt)
+            L.backward()
+            assert pred.shape == gt.shape
+            metrics['train_acc'].append(pred, gt)
+            metrics['train_lake_acc'].append(pred, gt)
+            metrics['train_nolake_acc'].append(pred, gt)
+            metrics['train_loss'].append(L)
+            optimizer.step()
+
+            #if (idx % 10) == 0:
+            #    pass # eval
+        
+        torch.cuda.empty_cache()
+        
+        model.eval()
+        print('eval step')
+        for idx, (im, gt) in enumerate(dl_val):
+            im = im.to(device)
+            gt = gt.to(device)
+            pred = model(im)
+            L = loss(pred, gt)
+            metrics['val_acc'].append(pred, gt)
+            metrics['val_lake_acc'].append(pred, gt)
+            metrics['val_nolake_acc'].append(pred, gt)
+            metrics['val_loss'].append(L)
+
+        torch.cuda.empty_cache()
+        
+        results = {key: metrics[key].result() for key in metrics}
+        plotlosses.update(results)
+        plotlosses.send()
+
+        for name, metric in metrics.items():
+            metric.history()
+
+            
+    history = {key: metrics[key].hist for key in metrics}
+        
+#         if (len(topk_val_losses) < 5) or (val_loss < max(topk_val_losses.keys())):
+#             if (len(topk_val_losses) > 0) and (val_loss < max(topk_val_losses.keys())):
+#                 argmin = max(topk_val_losses.keys())
+#                 fname = topk_val_losses[argmin]
+#                 os.remove(fname)
+#                 del topk_val_losses[argmin]
+#             topk_val_losses[val_loss] = f'model-{train_id}-{epoch}.pth'
+#             torch.save(model.state_dict(), f'model-{train_id}-{epoch}.pth')
+
+    torch.save(model.state_dict(), 'model-latest.pth')
