@@ -1,11 +1,38 @@
 {
-    "from_scratch": {
+    "from_scratch_landcover": {
         "use_pretrained_vgg": false,
         "pretrained_model": null,
-        "train_img_list": "train_img_list.json",
-        "test_img_list": "test_img_list.json",
+        "train_img_list": "train_img_list_landcover.json",
+        "test_img_list": "test_img_list_landcover.json",
         "batch_size": 40,
         "num_epochs": 20,
         "lr": 0.0001
-    }
+    },
+    "from_scratch_sentinel": {
+        "use_pretrained_vgg": false,
+        "pretrained_model": null,
+        "train_img_list": "train_img_list_sentinel.json",
+        "test_img_list": "test_img_list_sentinel.json",
+        "batch_size": 40,
+        "num_epochs": 20,
+        "lr": 0.0001
+    },
+    "vgg_landcover": {
+        "use_pretrained_vgg": true,
+        "pretrained_model": null,
+        "train_img_list": "train_img_list_landcover.json",
+        "test_img_list": "test_img_list_landcover.json",
+        "batch_size": 40,
+        "num_epochs": 20,
+        "lr": 0.0001
+    },
+    "vgg_sentinel": {
+        "use_pretrained_vgg": true,
+        "pretrained_model": null,
+        "train_img_list": "train_img_list_sentinel.json",
+        "test_img_list": "test_img_list_sentinel.json",
+        "batch_size": 40,
+        "num_epochs": 20,
+        "lr": 0.0001
+    },
 }
