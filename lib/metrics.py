@@ -22,14 +22,20 @@ class Metric:
     def history(self):
         self.hist.append(self.val)
     
-    
+
 class AccuracyMetric(Metric):
     def __init__(self, threshold):
         super().__init__()
         self.threshold = threshold
         
     def calc(self, pred, gt):
-        return ((pred > self.threshold) == gt.bool()).sum().item() / pred.numel()
+        
+        p1 = (pred > self.threshold)
+        g1 = (gt > self.threshold)
+        t = (p1 == g1).sum().item()
+        return t/pred.numel()
+        #return ((pred > self.threshold) == gt.bool()).sum().item() / pred.numel()
+
 
 # true positive
 class LakeAccuracyMetric(Metric):
@@ -53,7 +59,36 @@ class NoLakeAccuracyMetric(Metric):
 class LossMetric(Metric):
     def __init__(self):
         super().__init__()
-        #self.threshold = threshold
         
     def calc(self, loss):
         return loss.item()
+
+
+class MIOUMetric(Metric):
+    def __init__(self, threshold):
+        super().__init__()
+        self.threshold = threshold
+        
+    def calc(self, pred, gt):
+        p1 = (pred > self.threshold)
+        p0 = (pred < self.threshold)
+        g1 = (gt > self.threshold)
+        g0 = (gt < self.threshold)
+        iou1 = (p1 & g1).sum(dim=[1,2,3]) / (p1 | g1).sum(dim=[1,2,3])
+        iou0 = (p0 & g0).sum(dim=[1,2,3]) / (p0 | g0).sum(dim=[1,2,3])
+        return ((iou1 + iou0) / 2).float().mean().item()
+
+    
+class F1Metric(Metric):
+    def __init__(self, threshold):
+        super().__init__()
+        self.threshold = threshold
+        
+    def calc(self, pred, gt):
+        p1 = (pred > self.threshold)
+        p0 = (pred < self.threshold)
+        g1 = (gt > self.threshold)
+        g0 = (gt < self.threshold)
+        iou1 = (p1 & g1).sum(dim=[1,2,3]) / pred[0].numel()
+        iou0 = (p0 & g0).sum(dim=[1,2,3]) / pred[0].numel()
+        return ((iou1 + iou0) / 2).float().mean().item()

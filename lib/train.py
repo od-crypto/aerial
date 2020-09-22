@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(0)
 random.seed(0)
 
-def trainer(cfg, train_id=None, num_workers=20, device=None):
+def trainer(cfg, train_id=None, num_workers=15, device=None):
     
     device = device or 'cuda:0' ##
     train_id = train_id or cfg['train_id']
@@ -64,6 +64,10 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
         'val_lake_acc': LakeAccuracyMetric(0.5),
         'train_nolake_acc': NoLakeAccuracyMetric(0.5),
         'val_nolake_acc': NoLakeAccuracyMetric(0.5),
+        'val_miou': MIOUMetric(0.5),
+        'train_miou': MIOUMetric(0.5),
+        'val_f1': F1Metric(0.5),
+        'train_f1': F1Metric(0.5)
     }
     
     groups = {
@@ -71,6 +75,8 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
         'bce-loss': ['train_loss', 'val_loss'], 
         'lake-acc': ['train_lake_acc', 'val_lake_acc'],
         'nolake_acc': ['train_nolake_acc', 'val_nolake_acc'],
+        'miou': ['train_miou', 'val_miou'],
+        'f1': ['train_f1', 'val_f1']
     }
     plotlosses = PlotLosses(groups=groups)
 
@@ -94,6 +100,8 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
             metrics['train_acc'].append(pred, gt)
             metrics['train_lake_acc'].append(pred, gt)
             metrics['train_nolake_acc'].append(pred, gt)
+            metrics['train_miou'].append(pred, gt)
+            metrics['train_f1'].append(pred, gt)
             metrics['train_loss'].append(L)
             optimizer.step()
         
@@ -110,6 +118,8 @@ def trainer(cfg, train_id=None, num_workers=20, device=None):
                 metrics['val_acc'].append(pred, gt)
                 metrics['val_lake_acc'].append(pred, gt)
                 metrics['val_nolake_acc'].append(pred, gt)
+                metrics['val_miou'].append(pred, gt)
+                metrics['val_f1'].append(pred, gt)
                 metrics['val_loss'].append(L)
         torch.cuda.empty_cache()
         
