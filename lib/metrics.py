@@ -57,3 +57,33 @@ class LossMetric(Metric):
         
     def calc(self, loss):
         return loss.item()
+
+    
+
+class MIOUMetric(Metric):
+    def __init__(self, threshold):
+        super().__init__()
+        self.threshold = threshold
+        
+    def calc(self, pred, gt):
+        p1 = (pred > self.threshold)
+        p0 = (pred < self.threshold)
+        g1 = (g > self.threshold)
+        g0 = (g < self.threshold)
+        iou1 = (p1 & g1).sum(dim=[1,2,3]) / (p1 | g1).sum(dim=[1,2,3])
+        iou0 = (p0 & g0).sum(dim=[1,2,3]) / (p0 | g0).sum(dim=[1,2,3])
+        return ((iou1 + iou0) / 2).mean().item()
+    
+class F1Metric(Metric):
+    def __init__(self, threshold):
+        super().__init__()
+        self.threshold = threshold
+        
+    def calc(self, pred, gt):
+        p1 = (pred > self.threshold)
+        p0 = (pred < self.threshold)
+        g1 = (g > self.threshold)
+        g0 = (g < self.threshold)
+        iou1 = (p1 & g1).sum(dim=[1,2,3]) / pred[0].numel()
+        iou0 = (p0 & g0).sum(dim=[1,2,3]) / pred[0].numel()
+        return ((iou1 + iou0) / 2).mean().item()

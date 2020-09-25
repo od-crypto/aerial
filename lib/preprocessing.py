@@ -100,7 +100,7 @@ class DatasetPreprocessor:
                 Image.fromarray(patch).save(f'{self.intermediate}/{fid}-{i}-{angle}.png')
     
     def rotate_step(self):
-        with Pool(20) as p:
+        with Pool(16) as p:
             p.map(self.rotate_onefile, self.fids)
 
             
@@ -120,7 +120,7 @@ class DatasetPreprocessor:
 
     
     def set_ifids(self):
-        with Pool(20) as p:
+        with Pool(16) as p:
             ifids = p.map(self._ifid_check, os.listdir(self.intermediate))
             
         ifids = list(filter(lambda x: x is not None, ifids))
@@ -134,7 +134,7 @@ class DatasetPreprocessor:
         return I[:, :, -1].mean() // (0.1 * 255), ifid
     
     def distribution(self):
-        with Pool(20) as p:
+        with Pool(16) as p:
             distrib = p.map(self._calc_stats, self.ifids)
         return distrib, Counter(map(lambda x: x[0], distrib))
         
@@ -164,7 +164,7 @@ class DatasetPreprocessor:
         use_fnames = [fname for mean in use_fnames 
                       for fname in use_fnames[mean]]
         
-        with Pool(20) as p:
+        with Pool(16) as p:
             p.map(self.finimwrite, use_fnames)      
         
 

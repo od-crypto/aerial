@@ -26,7 +26,7 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(0)
 random.seed(0)
 
-def trainer(cfg, train_id=None, num_workers=20, device=None):
+def trainer(cfg, train_id=None, num_workers=8, device=None):
     
     device = device or 'cuda:0' ##
     train_id = train_id or cfg['train_id']
