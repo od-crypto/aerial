@@ -26,7 +26,8 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(0)
 random.seed(0)
 
-def trainer(cfg, train_id=None, num_workers=8, device=None):
+
+def trainer(cfg, train_id=None, num_workers=15, device=None):
     
     device = device or 'cuda:0' ##
     train_id = train_id or cfg['train_id']
@@ -37,13 +38,18 @@ def trainer(cfg, train_id=None, num_workers=8, device=None):
    
     model = ternausnet.models.UNet11(pretrained=use_pretrained_vgg)
     
+    if cfg.get('first_freeze_layers', None) is not None:
+        for i in range(cfg['first_freeze_layers']):
+            for param in model.encoder[i].parameters():
+                param.requires_grad = False
+    
     if cfg['pretrained_model'] is not None:
         model.load_state_dict(torch.load(cfg['pretrained_model']))
     model = model.to(device)
 
     loss = nn.BCEWithLogitsLoss()
    
-    optimizer = Adam(model.parameters(), lr)    
+    optimizer = Adam(filter(lambda x: return x.requires_grad, model.parameters()), lr)    
 
     d_train = WaterDataset(cfg['train_img_list'], train_transform)
     d_val = WaterDataset(cfg['test_img_list'], test_transform)
@@ -64,6 +70,10 @@ def trainer(cfg, train_id=None, num_workers=8, device=None):
         'val_lake_acc': LakeAccuracyMetric(0.5),
         'train_nolake_acc': NoLakeAccuracyMetric(0.5),
         'val_nolake_acc': NoLakeAccuracyMetric(0.5),
+        'val_miou': MIOUMetric(0.5),
+        'train_miou': MIOUMetric(0.5),
+        'val_f1': F1Metric(0.5),
+        'train_f1': F1Metric(0.5)
     }
     
     groups = {
@@ -71,6 +81,8 @@ def trainer(cfg, train_id=None, num_workers=8, device=None):
         'bce-loss': ['train_loss', 'val_loss'], 
         'lake-acc': ['train_lake_acc', 'val_lake_acc'],
         'nolake_acc': ['train_nolake_acc', 'val_nolake_acc'],
+        'miou': ['train_miou', 'val_miou'],
+        'f1': ['train_f1', 'val_f1']
     }
     plotlosses = PlotLosses(groups=groups)
 
@@ -94,6 +106,8 @@ def trainer(cfg, train_id=None, num_workers=8, device=None):
             metrics['train_acc'].append(pred, gt)
             metrics['train_lake_acc'].append(pred, gt)
             metrics['train_nolake_acc'].append(pred, gt)
+            metrics['train_miou'].append(pred, gt)
+            metrics['train_f1'].append(pred, gt)
             metrics['train_loss'].append(L)
             optimizer.step()
         
@@ -101,16 +115,18 @@ def trainer(cfg, train_id=None, num_workers=8, device=None):
         
         model.eval()
         print('eval step')
-        for idx, (im, gt) in enumerate(dl_val):
-            im = im.to(device)
-            gt = gt.to(device)
-            pred = model(im)
-            L = loss(pred, gt)
-            metrics['val_acc'].append(pred, gt)
-            metrics['val_lake_acc'].append(pred, gt)
-            metrics['val_nolake_acc'].append(pred, gt)
-            metrics['val_loss'].append(L)
-
+        with torch.no_grad():
+            for idx, (im, gt) in enumerate(dl_val):
+                im = im.to(device)
+                gt = gt.to(device)
+                pred = model(im)
+                L = loss(pred, gt)
+                metrics['val_acc'].append(pred, gt)
+                metrics['val_lake_acc'].append(pred, gt)
+                metrics['val_nolake_acc'].append(pred, gt)
+                metrics['val_miou'].append(pred, gt)
+                metrics['val_f1'].append(pred, gt)
+                metrics['val_loss'].append(L)
         torch.cuda.empty_cache()
         
         results = {key: metrics[key].result() for key in metrics}
