@@ -1,5 +1,6 @@
 # Comparison of two segmentation methods for Lakes Datasets
 ### Computer vision project on satellite image segmentation 
+#### We provide PyTorch code for building and training models, and python code for image retrieval and local feature matching.
 
 ## I. Setting the task. Pipeline.
 
@@ -13,11 +14,17 @@ better in the end, i.e. it will find the dependencies a bit faster and perhaps a
 
 
 
-The classical architecture for a semantic segmentation is the convolutional neural network U-Net, this is the first choice to be considered.
-(TODO: insert the U-Net architecture pic). The U-Net has an interesting feature - 
-if one looks at its encoder part, in the classic version the encoders architecture is exactly the same as that of the VGG neural network. 
-The idea that was successfully implemented by Iglovikov in his TernausNet 
-(https://arxiv.org/abs/1801.05746), is to train the entire network with a pre-trained VGG encoder. 
+The classical architecture for a semantic segmentation is the convolutional neural network U-Net, 
+which is the first choice to be considered:
+
+![MatchedImagesExample](examples/U-net_architecture.png)
+
+The U-Net has an interesting feature - 
+if one looks at its encoder part, in the classic version the encoders architecture is exactly the same 
+as that of the VGG neural network. 
+The idea [![Paper](http://img.shields.io/badge/paper-arXiv.1801.05746-B3181B.svg)](https://arxiv.org/abs/1801.05746) 
+that was successfully implemented by Iglovikov in his [TernausNet](https://github.com/ternaus/TernausNet), 
+is to train the entire network with a pre-trained VGG encoder. 
 Important point of any problem of segmentation is that the labeling, or the creation of a pixel-wise mask for each object - 
 in our current problem lake or, in general, water - on the image is a time-consuming and demanding task. VGG is a network 
 that has been trained for a classification problem. For the latter it is much easier to assemble a large dataset. 
@@ -25,28 +32,69 @@ This is why we are in an interesting situation where we do the transfer learning
 For example, we have a network that was able to classify a thousand classes 
 of ImageNet, but we want to distinguish just water from non-water, i.e. to solve a narrower classification 
 problem. In this way, we use the classification problem as a basis for the segmentation task. 
-We will use VGG11 neural network pretrained on ImageNet. The Dataset that we have is small, and yet it would be 
-hard to collect such on our own. In order to assemble it, we used the service of the Yandex Toloka 
-platform and set up almost automatic processing of the results that one obtains from there. We got such 
-exceptionally high-quality masks (TODO: insert an example of an image and a mask; show the learning curve of Yandex Toloka). 
+We used VGG11 neural network pretrained on ImageNet. Remarkable is, that ImageNet is a dataset 
+quite distinct from the lakes satellite image dataset)
+
+## Dataset
+
+The Dataset that we obtained is small. It consists of 212 satellite images of lakes and their high-quality masks
+of a large size approximately 9000 by 9000 pixels. 
+Nonetheless it would be hard to collect such on our own. In order to assemble it, 
+we used the service of the [Yandex Toloka platform](https://toloka.yandex.ru/).
+We set up an almost automatic pipeline of processing of the results. 
+
+ - First one has to collect the raw images of lakes. 
+For that aim one chooses a piece of land with a lake on it on 
+[OpenStreetMap](https://www.openstreetmap.org). There one has to click the "Export" button in the left upper corner, then 
+"Manually select a different area", then the "Overpass API" link. 
+A file with the four values of the min/max longitude and latitude of the chosen rectangle will be downloaded. 
+
+- Next one uses the 
+[cloudless Sentinel-2 map of the world](https://s2maps.eu/), 
+available for free, to retrieve the satellite image of the rectangle with the above downloaded coordinates. 
+The corresponding collected dataset of raw satellite images of lakes is to be found 
+[here](https://github.com/od-crypto/somedata/tree/master/img).
+
+- These raw satellite images are then send to the developed Toloka pipeline for the creation of the pixel-wise 
+labelling of water on the images with the means of crowdsourcing. 
+To set the task 1) please run [the jupyter notebook](aerial/Toloka/Toloka_task.ipynb),
+to create the Toloka task tsv-file, containing the raw lake image source urls, to be posted on the Yandex Toloka 
+platform together with the 2) [description of the task](aerial/Toloka/Toloka_task_description.html); 3) adjust 
+the specific settings on the Yandex Toloka platform.
+
+ - Once one receives the Toloka answers for the pixel-wise labeling of water on the images in the form of json-strings,
+to obtain the corresponding masks, one runs [the jupyter notebook](aerial/Toloka/Process_Toloka_json_results.ipynb).
+It will take approximately half an hour, to obtain high-quality masks for the lake images as png-files. 
+They will be saved in the folder aerial/datasets/sentinel/masks. If one wishes the images, the masks and their collages 
+to be diplayed locally in running Jupyter Notebook, choose display_locally=True in the function create_masks, defined 
+[here](aerial/Toloka/create_masks.py).
+Below is an example of the satellite image of the Vyshnevolock Reservoir and its created mask:
+
+Image             |  Mask  |  Collage
+:-------------------------:|:-------------------------:|:-------------------------: 
+![MatchedImagesExample](examples/russia_vyshnevolotskoye_reservoir_s2cloudless_2017_image.png)  |  ![MatchedImagesExample](examples/russia_vyshnevolotskoye_reservoir_s2cloudless_2017_mask.png)  |  ![MatchedImagesExample](examples/russia_vyshnevolotskoye_reservoir_s2cloudless_2017_collage.png)
+
+(TODO: show the learning curve of Yandex Toloka). 
 Thus with someone else's hands we segment the images, and now all we need is a little more money to 
-get even larger datasets. With such an automatically set-up pipeline, we have collected 200 
-satellite images with lakes and their masks of a large size approximately 9000 by 9000 pixels. 
+get even larger datasets. 
+
+## Augmentation of the Dataset: crops and rotations. 
+
 Next, the task can be solved in different ways: one can, for example, 
 resize every image we have to a certain size and try to get a clear mask with the 
-network immediately. But we choose a different solution: each image
-is cropped into many rectangles, each having a characteristic size approximately such that a 
+network immediately. But we chose a different solution: each image and its mask 
+was cropped into many rectangles, each having a characteristic size approximately such that a 
 human being is still able to distinguish water from ground and forest on each crop. 
-We have the segmentation masks for each crop accordingly, so we feed them to the network to be trained and, 
-voila, the network is able to learn. After that we cover the image with several layers with these 
+Having the crops and the correct segmentation masks for each crop accordingly, 
+we fed them to the network to be trained and observed that the network was indeed able to learn. 
+After that we covered the image with several layers with these 
 crops, namely, we take the entire image on a square of 300 by 300 pixels, and then we 
-shift each square by another 150 pixels, i.e. we shift the entire grid by a vector (150, 150). 
+shifted each square by another 150 pixels, i.e. we shifted the entire grid by a vector (150, 150). 
 In total, it turns out that each point is covered by two squares. This makes it possible 
-to increase the accuracy of the predictions, because the results that come from these squares 
+to increase the accuracy of the predictions, as the results coming from these squares 
 are averaged. This is the test time augmentation (TTA) method. 
 
-## II. Training the models for the segmentation problem. 
-In total, we have crops with sizes from around 300 to around 500 pixels. 
+In this way, in the intermediate phase we had approx. 100000 crops with sizes from around 300 to around 500 pixels. 
 We have to make sure that the network learns how to segment them. 
 Since we have decided to use a pre-trained network, this imposes certain limitations. 
 The input that we can consider must be exactly the input of the pre-trained network, 
@@ -59,17 +107,28 @@ Namely we only implemented from scratch those rotations that are not to be found
 because the built-in rotations produce artifacts that can affect the learning. 
 Since we have a unique situation where there is a huge image from which we cut crops, 
 we decided to do the most honest crops possible. 
-This is a very specific situation: it is a rare case where one can rotate honestly, preserving the characteristic size 
-of the features and not adding any noise due to the artifacts of the rotation of the rectangle. In addition, 
-since it is possible to analyse the statistics of the share of water on each crop, 
-it turns out that there are too many crops with only land and no water. 
-(TODO: insert the generated distribution graph here). In order to make it easier for the network to learn, 
+This is a very specific situation: it is a rare case where one can rotate honestly, 
+preserving the characteristic size 
+of the features and not adding any noise due to the artifacts of the rotation of the rectangle. 
+In addition, since it is possible to analyse the statistics of the share of water on each crop, 
+it turns out that there are too many crops with only land and no water. On the histogramm below 
+on the y-axis are the number of cro: 
+
+![MatchedImagesExample](examples/Water_share.png)
+
+
+In order to make it easier for the network to learn, 
 so that it does not fall into overfit, marking all pixels with either earth or water, we balanced the dataset. 
-At that we have balanced the already rotated dataset, which guarantees that the training will be more correct (TODO: add explanation). 
-After we balance the dataset, we started the training, and this is where the most interesting part is. We can compare two methods - 
-training from scratch and training with a pretrained VGG encoder. And, voila, 
-it turns out that the model obtained from training the network with an initially pretrained on ImageNet 
-(a dataset in principle very distinct from a lakes sattellite image dataset) encoder gives much better results!
+At that we have balanced the already rotated dataset, which guarantees that the training will be more 
+correct. This diminished the augmented dataset to around 70000 crops.
+
+
+## II. Training the models for the segmentation problem. 
+
+After we balance the dataset, we start the training, and this is where the most interesting part is. 
+We can compare two methods - training from scratch and training with a pretrained VGG encoder. And indeed,
+it turns out that training of the network with the pretrained on ImageNet VGG11 encoder 
+yields a model which provides much better segmentation results!
 
 TODO: provide a link for the demo with inference.
 
