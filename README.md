@@ -4,20 +4,31 @@
 
 ## I. Setting the task. Pipeline.
 
-The semantic segmentation problem is a rather complex one that is currently being actively addressed. 
-Many different techniques are being used, both with complex architecture and with complex training policies. 
-A vivid example of a complex learning policy is the transfer learning. Potentially, the situation looks very tempting. 
-We have a pre-trained network that does not know nothing about the task we want to solve, 
+For the semantic segmentation problem are currently being used many different techniques, 
+both with complex architecture and with complex training policies. 
+An example of a complex learning policy is the transfer learning. 
+
+In the situation of transfer learning one has a pre-trained network that does not know nothing about the task we want to solve, 
 but already has some preliminary knowledge. Most likely, because we have given this 
 preliminary knowledge in the form of the weights of the trained network, it will learn a bit 
 better in the end, i.e. it will find the dependencies a bit faster and perhaps a bit more correctly. 
 
 
+Hence in the current project the following question is being investigated: to what extent does a pre-trained model improve the 
+quality of the segmentation problem solution? 
+Of particular interest is the fact that articles on satellite imagery have mentioned several times that transfer 
+learning is not easy and does not always make sense.
+That is why we will fix the architecture of the neural network and we will fix the augmentations of the dataset. 
+Essentialy we will vary only the learning policy. In particular, we will check almost extreme cases - 
+the training sample does not consist of satellite images (ImageNet).
 
-The classical architecture for a semantic segmentation is the convolutional neural network U-Net, 
-which is the first choice to be considered:
+
+The first choise for a semantic segmentation problem is the convolutional neural network with a U-Net architecture. 
+We will use its [TernausNet](https://github.com/ternaus/TernausNet) modification:
+
 
 ![MatchedImagesExample](examples/U-net_architecture.png)
+
 
 The U-Net has an interesting feature - 
 if one looks at its encoder part, in the classic version the encoders architecture is exactly the same 
@@ -37,7 +48,7 @@ quite distinct from the lakes satellite image dataset)
 
 ## Dataset
 
-The Dataset that we obtained is small. It consists of 212 satellite images of lakes and their high-quality masks
+The Dataset that we have is small. It consists of 212 satellite images of lakes and their high-quality masks
 of a large size approximately 9000 by 9000 pixels. 
 Nonetheless it would be hard to collect such on our own. In order to assemble it, 
 we used the service of the [Yandex Toloka platform](https://toloka.yandex.ru/).
@@ -57,17 +68,17 @@ The corresponding collected dataset of raw satellite images of lakes is to be fo
 
 - These raw satellite images are then send to the developed Toloka pipeline for the creation of the pixel-wise 
 labelling of water on the images with the means of crowdsourcing. 
-To set the task 1) please run [the jupyter notebook](aerial/Toloka/Toloka_task.ipynb),
+To set the task 1) please run [the jupyter notebook](Toloka/Toloka_task.ipynb),
 to create the Toloka task tsv-file, containing the raw lake image source urls, to be posted on the Yandex Toloka 
-platform together with the 2) [description of the task](aerial/Toloka/Toloka_task_description.html); 3) adjust 
+platform together with the 2) [description of the task](Toloka/Toloka_task_description.html); 3) adjust 
 the specific settings on the Yandex Toloka platform.
 
  - Once one receives the Toloka answers for the pixel-wise labeling of water on the images in the form of json-strings,
-to obtain the corresponding masks, one runs [the jupyter notebook](aerial/Toloka/Process_Toloka_json_results.ipynb).
+to obtain the corresponding masks, one runs [the jupyter notebook](Toloka/Process_Toloka_json_results.ipynb).
 It will take approximately half an hour, to obtain high-quality masks for the lake images as png-files. 
-They will be saved in the folder aerial/datasets/sentinel/masks. If one wishes the images, the masks and their collages 
+They will be saved in the folder datasets/sentinel/masks. If one wishes the images, the masks and their collages 
 to be diplayed locally in running Jupyter Notebook, choose display_locally=True in the function create_masks, defined 
-[here](aerial/Toloka/create_masks.py).
+[here](Toloka/create_masks.py).
 Below is an example of the satellite image of the Vyshnevolock Reservoir and its created mask:
 
 Image             |  Mask  |  Collage
@@ -94,7 +105,7 @@ In total, it turns out that each point is covered by two squares. This makes it 
 to increase the accuracy of the predictions, as the results coming from these squares 
 are averaged. This is the test time augmentation (TTA) method. 
 
-In this way, in the intermediate phase we had approx. 100000 crops with sizes from around 300 to around 500 pixels. 
+In this way, in the intermediate step we had 114440 crops with sizes from around 300 to around 500 pixels. 
 We have to make sure that the network learns how to segment them. 
 Since we have decided to use a pre-trained network, this imposes certain limitations. 
 The input that we can consider must be exactly the input of the pre-trained network, 
@@ -112,7 +123,7 @@ preserving the characteristic size
 of the features and not adding any noise due to the artifacts of the rotation of the rectangle. 
 In addition, since it is possible to analyse the statistics of the share of water on each crop, 
 it turns out that there are too many crops with only land and no water. On the histogramm below 
-on the y-axis are the number of cro: 
+on the y-axis are the number of crops and on the x-axis the shares of water, correspondingly (0-10. 10-20,...,90-100) %: 
 
 ![MatchedImagesExample](examples/Water_share.png)
 
@@ -120,14 +131,21 @@ on the y-axis are the number of cro:
 In order to make it easier for the network to learn, 
 so that it does not fall into overfit, marking all pixels with either earth or water, we balanced the dataset. 
 At that we have balanced the already rotated dataset, which guarantees that the training will be more 
-correct. This diminished the augmented dataset to around 70000 crops.
+correct. This diminished the augmented dataset to 86890 crops.
 
 
 ## II. Training the models for the segmentation problem. 
 
-After we balance the dataset, we start the training, and this is where the most interesting part is. 
-We can compare two methods - training from scratch and training with a pretrained VGG encoder. And indeed,
-it turns out that training of the network with the pretrained on ImageNet VGG11 encoder 
+After we balance the dataset, we can start the training, which is the most interesting part.
+
+There is a pre-trained classification model on ImageNet (vgg11), and there is an U-net segmentation network in which vgg11 can be built. 
+We compared two variants - training from scratch and training with a pretrained VGG encoder:
+
+- pure unet (ternausnet pretrained=False) 
+- unet + pretrained vgg11 on ImageNet
+
+
+And indeed, it turns out that training of the network with the pretrained on ImageNet VGG11 encoder 
 yields a model which provides much better segmentation results!
 
 TODO: provide a link for the demo with inference.

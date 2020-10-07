@@ -1,4 +1,4 @@
-opencv-python==4.1.2.30
+opencv-python
 Pillow
 numpy
 scipy
@@ -8,10 +8,11 @@ imagecodecs
 tqdm
 p_tqdm
 scikit-image
-git+git://github.com/ternaus/TernausNet.git#egg=ternausnet
+ternausnet
 matplotlib
 livelossplot
 yadisk
 scikit-learn
 streamlit
 ipywidgets
+demjson

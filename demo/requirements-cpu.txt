@@ -1,0 +1,8 @@
+streamlit
+opencv-python==4.1.2.30
+numpy
+Pillow
+https://download.pytorch.org/whl/cpu/torch-1.6.0%2Bcpu-cp37-cp37m-linux_x86_64.whl
+https://download.pytorch.org/whl/cpu/torchvision-0.7.0%2Bcpu-cp37-cp37m-linux_x86_64.whl
+https://github.com/ternaus/TernausNet/archive/master.zip
+requests

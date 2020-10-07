@@ -8,13 +8,13 @@ import numpy as np
 def get_model(fname=None, device='cuda:0'):
     model = ternausnet.models.UNet11(pretrained=False)
     if fname is not None:
-        model.load_state_dict(torch.load(fname))
+        model.load_state_dict(torch.load(fname, map_location=torch.device('cpu')))
     model = model.to(device=device)
     model.eval()
     return model
 
 
-def inference(model, I, device='cuda:0', batch_size=40, threshold=0.5):
+def inference(model, I, batch_size=40, threshold=0.5):
     L1, L2 = I.shape[:2]
     d1 = 300
     d2 = 150
@@ -29,7 +29,7 @@ def inference(model, I, device='cuda:0', batch_size=40, threshold=0.5):
     
     batch = ((batch / 255) - np.array([0.485, 0.456, 0.406])[None, None, None, :]) / np.array([0.229, 0.224, 0.225])[None, None, None, :]
     
-    batch = torch.tensor(batch, dtype=torch.float).to(device=next(model.parameters()).device)
+    batch = torch.tensor(batch, dtype=torch.float).to(device=next(model.encoder.parameters()).device)
     
     batch = batch.transpose(2,3).transpose(1,2)
     
