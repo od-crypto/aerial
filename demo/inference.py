@@ -14,7 +14,7 @@ def get_model(fname=None, device='cuda:0'):
     return model
 
 
-def inference(model, I, batch_size=40, threshold=0.5):
+def inference(model, I, batch_size=80, threshold=0.5):
     L1, L2 = I.shape[:2]
     d1 = 300
     d2 = 150
@@ -54,7 +54,7 @@ def inference(model, I, batch_size=40, threshold=0.5):
 def draw_mask(I, mask, alpha=0.1):
     dup = np.stack([np.zeros_like(mask), np.zeros_like(mask), mask], axis=-1)
     II = (alpha * dup + (1 - alpha) * I).astype(np.uint8)
-    brd = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, np.ones((5,5), dtype=np.uint8))
-    II[brd > 0] = (0,0,255)
-    return II
+    brd = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, np.ones((10,10), dtype=np.uint8))
+    II[brd > 0] = (0,255,255)   
     
+    return II
