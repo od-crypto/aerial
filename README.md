@@ -4,7 +4,7 @@
 
 ## I. Setting the task. Pipeline.
 
-For the semantic segmentation problem are currently being used many different techniques, 
+For the semantic segmentation problem are currently being used different techniques, 
 both with complex architecture and with complex training policies. 
 An example of a complex learning policy is the transfer learning. 
 
@@ -14,8 +14,7 @@ preliminary knowledge in the form of the weights of the trained network, it will
 better in the end, i.e. it will find the dependencies a bit faster and perhaps a bit more correctly. 
 
 
-Hence in the current project the following question is being investigated: to what extent does a pre-trained model improve the 
-quality of the segmentation problem solution? 
+In this project the following question was investigated: to what extent does a pre-trained model improve the solution of the segmentation problem? 
 Of particular interest is the fact that articles on satellite imagery have mentioned several times that transfer 
 learning is not easy and does not always make sense.
 That is why we will fix the architecture of the neural network and we will fix the augmentations of the dataset. 
@@ -146,14 +145,33 @@ We compared two variants - training from scratch and training with a pretrained 
 
 
 And indeed, it turns out that training of the network with the pretrained on ImageNet VGG11 encoder 
-yields a model which provides much better segmentation results!
+yields a model which provides better segmentation results. One can compare the two models on an inference, while 
+running the [the jupyter notebook](demo/demo.ipynb),
 
-TODO: provide a link for the demo with inference.
+
+Inference Image             |  from scratch  |  pretrained
+:-------------------------:|:-------------------------:|:-------------------------: 
+![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017.jpg)  |  ![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017_scratch.jpg)  |  ![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017_pretrain.jpg)
+
+
+
+Inference Image             |  from scratch  |  pretrained
+:-------------------------:|:-------------------------:|:-------------------------: 
+![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018.jpg)  |  ![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018_scratch.jpg)  |  ![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018_pretrain.jpg)
+
+
+
+Inference Image             |  from scratch  |  pretrained
+:-------------------------:|:-------------------------:|:-------------------------: 
+![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017.jpg)  |  ![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017_scratch.jpg)  |  ![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017_pretrain.jpg)
+
 
 
 ## III. Results. 
 TODO: show Loss function graphs for the two models. Explain, that they show, that the pretrained on ImageNet encoder helps avoid overfitting.
 TODO: Provide the final two numbers - the Mean Intersection over Union accuracy metrics (MIOU, or the so-called Dice Loss). 
+
+
 
 Technical stack details: 1) everything was implemented from scratch for educational purposes, 
 i.e. pytorch was used without frameworks, 
