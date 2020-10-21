@@ -14,7 +14,7 @@ def get_model(fname=None, device='cuda:0'):
     return model
 
 
-def inference(model, I, batch_size=80, threshold=0.5):
+def inference(model, I, batch_size=70, threshold=0.5):
     L1, L2 = I.shape[:2]
     d1 = 300
     d2 = 150
