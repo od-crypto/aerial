@@ -61,7 +61,7 @@ A file with the four values of the min/max longitude and latitude of the chosen 
 - Next one uses the 
 [cloudless Sentinel-2 map of the world](https://s2maps.eu/), 
 available for free, to retrieve the satellite image of the rectangle with the above downloaded coordinates. 
-The corresponding collected dataset of raw satellite images of lakes is to be found 
+In this way collected dataset of raw satellite images of lakes is to be found 
 [here](https://github.com/od-crypto/somedata/tree/master/img).
 
 - These raw satellite images are then send to the developed Toloka pipeline for the creation of the pixel-wise 
@@ -88,9 +88,9 @@ get even larger datasets.
 
 ## Augmentation of the Dataset: crops and rotations. 
 
-Next, the task can be solved in different ways: one can, for example, 
+Next, the problem can be solved in various ways: one can, for example, 
 resize every image we have to a certain size and try to get a clear mask with the 
-network immediately. But we choose a different solution: each image and its mask 
+network immediately. We proceed differently: each image and its mask 
 is being cropped into many rectangles, each having a characteristic size approximately such that a 
 human being is still able to distinguish water from ground and forest on each crop. 
 Next, we feed these crops and their correct segmentation masks to the network to be trained and observe that the network is indeed able to learn. 
@@ -110,12 +110,12 @@ This means that the input should be standardized to a fixed size 224 x 224 x 3 R
 and the normalisation should be fixed. This was done, plus custom augmentation was added. 
 The most interesting part of an augmentation are the rotations.
 Built-in rotations produce artifacts that can affect the learning. To avoid it, 
-we only implemented from scratch those rotations that are not to be found in the ready-to-use libraries. 
+we implement from scratch only those rotations that are not to be found in the ready-to-use libraries. 
 Since we have a very specific situation where there is a huge image from which we cut crops, 
 we can do the most honest crops possible: we preserve the characteristic size 
 of the features and we do not add any noise due to the artifacts of the rotation of the rectangle. 
 In addition, it is possible to analyse the statistics of water shares on each crop. On the histogramm below 
-are correspondingly the number of crops on y-axis and water shares on x-axis (0-10. 10-20,...,90-100) %: 
+on y-axis are the number of crops and on x-axis are the water shares (0-10. 10-20,...,90-100)%: 
 
 ![MatchedImagesExample](examples/Water_share.png)
 
@@ -130,14 +130,14 @@ correct. This diminished the augmented dataset to 86890 crops.
 
 After we balance the dataset, we can start the training, which is the most interesting part.
 
-There is a pre-trained classification model on ImageNet (vgg11), and there is an U-net segmentation network in which vgg11 can be built. 
+There is a pre-trained classification model on ImageNet (vgg11), and there is a U-net segmentation network into which the vgg11 can be built. 
 We compared two variants - training from scratch and training with a pretrained VGG encoder:
 
 - pure unet (ternausnet pretrained=False) 
 - unet + pretrained vgg11 on ImageNet
 
 
-The trained models are to be found here:
+The trained models are saved here:
 
 wget https://getfile.dokpub.com/yandex/get/https://yadi.sk/d/l2ioWDXYbb9SMw -O ../models/model-from_scratch_total_nofreeze_bs80_ne20_lr0.0001-19.pth
 
@@ -148,34 +148,33 @@ Hyperparameters for both models were: learning rate 0.0001, batch size 80, numbe
 
 ## III. Results.
 
-CONCLUSION: it turns out that training of the network with the pretrained on ImageNet VGG11 encoder 
-yields a model which provides better segmentation results. 
+CONCLUSION: it turns out that training on our lakes dataset of the network with a U-Net architecture with the pretrained on ImageNet VGG11 encoder 
+part yields a model which provides better segmentation results. 
 One compares the Mean Intersection over Union accuracy metrics (MIOU, or the so-called Dice Loss).
 The graphs of the Loss function for the two models demonstrate, that the pretrained on ImageNet encoder helps avoid overfitting.
 
-One can run inferences with the two models in [the demo jupyter notebook](demo/demo.ipynb). Examples:
+One can run inferences with the two models in [the demo jupyter notebook](demo/demo.ipynb) and obtain the water segmentation masks. Examples:
 
 
-Inference Image: Dospat, Bulgaria             |  from scratch  |  pretrained
+Inference Image: Dospat, Bulgaria             |  model from scratch  |  pretrained model
 :-------------------------:|:-------------------------:|:-------------------------: 
 ![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017.jpg)  |  ![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017_scratch.jpg)  |  ![MatchedImagesExample](examples/bulgaria_dospat_s2cloudless_2017_pretrain.jpg)
 
 
 
-Inference Image: Bodensee, Switzerland             |  from scratch  |  pretrained
+Inference Image: Bodensee, Switzerland             |  model from scratch  |  pretrained model
 :-------------------------:|:-------------------------:|:-------------------------: 
 ![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018.jpg)  |  ![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018_scratch.jpg)  |  ![MatchedImagesExample](examples/switzerland_bodensee_s2cloudless_2018_pretrain.jpg)
 
 
 
-Inference Image: Starnberger See, Germany            |  from scratch  |  pretrained
+Inference Image: Starnberger See, Germany            |  model from scratch  |  pretrained model
 :-------------------------:|:-------------------------:|:-------------------------: 
 ![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017.jpg)  |  ![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017_scratch.jpg)  |  ![MatchedImagesExample](examples/germany_starnberger_see_s2cloudless_2017_pretrain.jpg)
 
 
 
 ### IV. Technical stack details: 
-1) everything was implemented from scratch for educational purposes, 
-i.e. pytorch was used without frameworks 
-2) custom augmentaion was implemented manually, without usage of the built-in libraries 
-3) training was carried out on a vast.ai
+1) Everything was implemented from scratch for educational purposes, i.e. pytorch was used without frameworks. 
+2) Custom augmentaion was implemented manually, without usage of the built-in libraries. 
+3) Training was carried out on a vast.ai.
